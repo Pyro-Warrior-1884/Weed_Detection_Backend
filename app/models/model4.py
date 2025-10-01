@@ -7,7 +7,7 @@ predict = None
 
 try:
     def predict(image: Image.Image):
-        return "not_implemented", 0.0
+        return "Undergoing Implemention", 0.0
 
     predict.framework = "tensorflow"
     predict.input_size = 224
@@ -18,7 +18,7 @@ except Exception as e:
     print(f"[ERROR] Could not initialize Model4: {e}")
 
     def predict(image: Image.Image):
-        return "not_implemented", 0.0
+        return "Undergoing Implemention", 0.0
 
     predict.framework = "tensorflow"
     predict.input_size = 224

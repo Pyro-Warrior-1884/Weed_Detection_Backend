@@ -1,49 +1,63 @@
 """
-ResNet-50 (PyTorch)
+ResNet-50 (TensorFlow) with DeepWeeds preprocessing
 """
-import torch
-from torchvision import transforms
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image as keras_image
+from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
 from pathlib import Path
-from PIL import Image
 import numpy as np
+from PIL import Image
 
-MODEL_PATH = Path("models/resnet50.pt")
+MODEL_PATH = Path("models/resnet50.h5")
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+class_labels = [
+    'ChineeApple', 'Lantana', 'Parkinsonia', 'Parthenium', 
+    'PricklyAcacia', 'Rubbervine', 'SiamWeed', 'Snakeweed', 'Negatives'
+]
 
-# Try loading the model, log error if missing
+device = "/GPU:0" if tf.config.list_physical_devices('GPU') else "/CPU:0"
+
 model = None
-if MODEL_PATH.exists():
-    model = torch.load(MODEL_PATH, map_location=device)
-    model.eval()
-else:
-    print(f"[ERROR] ResNet model file not found at {MODEL_PATH.resolve()}")
+try:
+    model = tf.keras.models.load_model(MODEL_PATH)
+    model.trainable = False
+    print(f"✅ Model loaded from {MODEL_PATH}")
+except Exception as e:
+    print(f"[ERROR] Could not load ResNet model: {e}")
 
-def preprocess(image: Image.Image, input_size: int = 224):
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-    transform = transforms.Compose([
-        transforms.Resize((input_size, input_size)),
-        transforms.ToTensor(),
-        normalize
-    ])
-    return transform(image).unsqueeze(0)
+# =========================
+# Preprocessing function
+# =========================
+def preprocess(img: Image.Image, target_size: int = 224):
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    img = img.resize((target_size, target_size))
+    x = keras_image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)  # scales to [-1,1] and channel order
+    return x
 
-def predict(image: Image.Image):
-    """ResNet-50"""
+# =========================
+# Prediction function
+# =========================
+def predict(img: Image.Image):
+    """
+    Predict DeepWeeds label and confidence for a single image.
+    Returns (label_name, confidence)
+    """
     if model is None:
-        print("[ERROR] Cannot run prediction — ResNet model not loaded.")
+        print("[ERROR] Cannot run prediction — model not loaded.")
         return None, None
 
-    tensor = preprocess(image).to(device)
-    with torch.no_grad():
-        outputs = model(tensor)
-        probs = torch.nn.functional.softmax(outputs, dim=1)
-        top_prob, top_idx = torch.max(probs, dim=1)
-        idx = int(top_idx.cpu().numpy()[0])
-        confidence = float(top_prob.cpu().numpy()[0])
-    return idx, confidence
+    x = preprocess(img)
+    with tf.device(device):
+        preds = model(x, training=False)
+        pred_idx = tf.argmax(preds, axis=1).numpy()[0]
+        confidence = tf.reduce_max(tf.nn.softmax(preds, axis=1)).numpy()
+        label = class_labels[pred_idx]
+
+    return label, float(confidence)
 
 if model is not None:
-    predict.framework = "pytorch"
+    predict.framework = "tensorflow"
     predict.input_size = 224
