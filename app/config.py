@@ -10,5 +10,5 @@ ACCEPTED_CONTENT_TYPES = ["image/jpeg", "image/png"]
 
 # CORS
 ALLOWED_ORIGINS = [
-    "https://weeddetect-i2p699643-albertnedumudy-5247s-projects.vercel.app/"
+    "https://weeddetect-9bsq3eyw9-albertnedumudy-5247s-projects.vercel.app"
 ]
