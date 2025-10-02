@@ -26,7 +26,7 @@ try:
     x = base_model.output
     x = Dropout(0.3)(x) 
     outputs = Dense(len(class_names), activation="softmax")(x)
-
+    print(f"[SUCCESS] EfficientNet loaded successfully.")
     model = Model(inputs=base_model.input, outputs=outputs)
     model.load_weights(MODEL_PATH, by_name=True)
 

@@ -6,6 +6,7 @@ import traceback
 import os
 
 MODEL_PATH = Path("models/unet.h5")
+IMG_SIZE = 128
 model = None
 
 try:
@@ -18,29 +19,22 @@ except (OSError, IOError, ValueError, FileNotFoundError) as e:
     print(f"[ERROR] Failed to load model: {e}")
     traceback.print_exc()
 
-def preprocess(image: Image.Image, input_size: int = 256):
+def preprocess(image: Image.Image, input_size: int = IMG_SIZE):
     try:
-        print(f"[INFO] Preprocessing image of size {image.size}...")
         image = image.convert("RGB")
         image = image.resize((input_size, input_size))
         arr = np.array(image).astype(np.float32) / 255.0
         arr = np.expand_dims(arr, axis=0)
-        print(f"[INFO] Preprocessing done. Shape: {arr.shape}")
         return arr
     except Exception as e:
-        print(f"[ERROR] Preprocessing failed: {e}")
         traceback.print_exc()
         raise
 
-def weed_status(segmentation_map: np.ndarray):
+def weed_status(segmentation_map: np.ndarray, threshold: float = 0.01):
     try:
-        if not isinstance(segmentation_map, np.ndarray):
-            raise TypeError(f"Expected np.ndarray for segmentation_map, got {type(segmentation_map)}")
-        max_val = segmentation_map.max()
-        print(f"[DEBUG] Max value in segmentation map: {max_val}")
-        return "Weeds" if max_val == 1 else "No Weeds"
+        fraction = np.mean(segmentation_map)
+        return "Weeds" if fraction >= threshold else "No Weeds"
     except Exception as e:
-        print(f"[ERROR] weed_status failed: {e}")
         traceback.print_exc()
         raise
 
@@ -48,8 +42,7 @@ def predict(image: Image.Image):
     try:
         if model is None:
             raise RuntimeError("U-Net model is not loaded.")
-        arr = preprocess(image, input_size=256)
-        print(f"[INFO] Running prediction...")
+        arr = preprocess(image, input_size=IMG_SIZE)
         preds = model.predict(arr)
         if preds.ndim != 4 or preds.shape[-1] != 1:
             raise ValueError(f"Unexpected prediction shape: {preds.shape}")
@@ -57,12 +50,10 @@ def predict(image: Image.Image):
         segmentation_map = (preds[..., 0] > 0.5).astype(np.uint8)
         confidence = float(np.mean(preds[..., 0]))
         status = weed_status(segmentation_map)
-        print(f"[INFO] Prediction completed. Status: {status}, Confidence: {confidence:.4f}")
         return status, confidence
     except Exception as e:
-        print(f"[ERROR] Prediction failed: {e}")
         traceback.print_exc()
         raise
 
 predict.framework = "tensorflow"
-predict.input_size = 256
+predict.input_size = IMG_SIZE
