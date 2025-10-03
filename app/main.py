@@ -4,9 +4,9 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
-from .config import ALLOWED_ORIGINS, MAX_UPLOAD_SIZE, ACCEPTED_CONTENT_TYPES
+from .config import MAX_UPLOAD_SIZE, ACCEPTED_CONTENT_TYPES
 from .schemas import ModelInfo, PredictionResponse
-from .utils.registry import MODEL_REGISTRY
+from .utils.registry import get_model_handler, list_available_models
 
 app = FastAPI(title="ML Prediction API")
 
@@ -25,7 +25,8 @@ async def health():
 @app.get("/models", response_model=List[ModelInfo])
 async def list_models():
     models = []
-    for name, handler in MODEL_REGISTRY.items():
+    for name in list_available_models():
+        handler = get_model_handler(name)  # loads on demand
         models.append(ModelInfo(
             id=name,
             name=handler.__doc__ or name,
@@ -35,11 +36,10 @@ async def list_models():
     return models
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict(
-    file: UploadFile = File(...),
-    model_name: str = Form(...)
-):
-    if model_name not in MODEL_REGISTRY:
+async def predict(file: UploadFile = File(...), model_name: str = Form(...)):
+    try:
+        handler = get_model_handler(model_name)
+    except ValueError:
         raise HTTPException(status_code=400, detail="Invalid model_name")
 
     contents = await file.read()
@@ -55,7 +55,7 @@ async def predict(
         raise HTTPException(status_code=400, detail="Unable to read image file")
 
     try:
-        prediction, confidence = MODEL_REGISTRY[model_name](image)
+        prediction, confidence = handler(image)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Model error: {str(e)}")
 
