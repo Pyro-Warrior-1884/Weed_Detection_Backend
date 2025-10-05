@@ -4,8 +4,8 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
-from .config import MAX_UPLOAD_SIZE, ACCEPTED_CONTENT_TYPES
-from .schemas import ModelInfo, PredictionResponse
+from config import MAX_UPLOAD_SIZE, ACCEPTED_CONTENT_TYPES
+from schemas import ModelInfo, PredictionResponse
 from .utils.registry import get_model_handler, list_available_models
 
 app = FastAPI(title="ML Prediction API")
