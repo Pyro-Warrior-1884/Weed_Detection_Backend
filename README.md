@@ -23,7 +23,6 @@ This repository serves as the backend API powering the weed detection system, ca
 | **Deep Learning** | TensorFlow, PyTorch, TorchVision |
 | **Data Handling** | Pillow, NumPy, Pydantic |
 | **Server** | Uvicorn |
-| **DevOps / CI-CD** | GitHub Actions, Azure Web Apps |
 | **Environment** | Python 3.9+ |
 
 ---
