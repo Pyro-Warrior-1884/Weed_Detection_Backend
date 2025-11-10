@@ -180,7 +180,7 @@ To contribute:
 
 ## Author
 
-**Pyro Warrior**  
+**Albert Augustine**  
 GitHub: [@Pyro-Warrior-1884](https://github.com/Pyro-Warrior-1884)  
 Reach out for collaborations or ML-based backend integrations.
 
